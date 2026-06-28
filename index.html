@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SpiderBot Admin</title>
+<link rel="icon" type="image/png" href="./assets/07-china.png"/>
+<link rel="preconnect" href="https://api.fontshare.com"/>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#e5e5e5;font-family:'Inter',system-ui,sans-serif;font-size:14px;min-height:100vh}
+a{color:inherit;text-decoration:none}
+
+.shell{width:100%;max-width:none;margin:0;padding:24px;min-height:100vh;grid-template-columns:242px minmax(0,1fr);gap:20px;align-items:start}
+
+/* login overlay */
+.login-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center}
+.login-overlay.show{display:flex}
+.login-box{background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:32px;width:340px;text-align:center}
+.login-box h2{font-size:16px;margin-bottom:8px}
+.login-box p{font-size:12px;color:#555;margin-bottom:20px}
+.login-box input{background:#0a0a0a;border:1px solid #2a2a2a;border-radius:7px;padding:10px 12px;color:#e5e5e5;font-size:14px;width:100%;outline:none;transition:border-color .15s}
+.login-box input:focus{border-color:#ff2020}
+.login-box .btn{margin-top:12px;width:100%;padding:10px}
+.login-err{color:#ff6060;font-size:12px;margin-top:8px;display:none}
+
+/* app shell */
+.admin-sidebar{position:sticky;top:24px;min-height:calc(100vh - 48px);display:flex;flex-direction:column;gap:16px;padding:16px;background:#111;border:1px solid #1f1f1f;border-radius:10px}
+.side-brand{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid #1f1f1f}
+.side-brand img{width:28px;height:28px;object-fit:contain}
+.side-brand span{display:flex;flex-direction:column;line-height:1.1}
+.side-brand b{font-size:15px;font-weight:600;color:#e5e5e5}
+.side-brand small{margin-top:3px;color:#555;font-size:11px}
+.side-nav{display:flex;flex-direction:column;gap:4px}
+.side-link{width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 11px;border:1px solid transparent;border-radius:8px;background:transparent;color:#777;cursor:pointer;font:inherit;text-align:left;transition:background .15s,border-color .15s,color .15s}
+.side-link span{font-size:13px;font-weight:600}
+.side-link small{color:#555;font-size:11px}
+.side-link:hover{background:#151515;color:#ddd;border-color:#242424}
+.side-link.active{background:#1a1a1a;color:#f0f0f0;border-color:#2a2a2a}
+.side-link.active small{color:#ff6060}
+.side-card{display:grid;gap:5px;margin-top:auto;padding:12px;background:#0d0d0d;border:1px solid #1f1f1f;border-radius:9px}
+.side-card span{color:#555;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.side-card strong{color:#e5e5e5;font-size:13px}
+.side-actions{display:grid;gap:8px}
+.admin-content{min-width:0}
+.content-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:22px;padding-bottom:20px;border-bottom:1px solid #1f1f1f}
+.content-kicker{color:#ff6060;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.content-head h1{margin:4px 0 6px;color:#f0f0f0;font-size:24px;letter-spacing:0}
+.content-head p{max-width:680px;margin:0;color:#777;font-size:13px}
+.content-actions{display:flex;align-items:center;gap:10px}
+.updated{font-size:11px;color:#444;font-family:monospace}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+.stat{background:#111;border:1px solid #1f1f1f;border-radius:10px;padding:16px 20px}
+.stat-label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.stat-val{font-size:26px;font-weight:700;letter-spacing:-.03em;color:#f0f0f0}
+.stat-val.green{color:#4ade80}
+.stat-val.red{color:#ff2020}
+.stat-val.purple{color:#c084fc}
+
+/* section title row */
+.sec-row{display:flex;align-items:center;gap:10px;margin:24px 0 10px}
+.sec-title{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.08em}
+
+/* table */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid #1f1f1f}
+table{width:100%;border-collapse:collapse;min-width:600px}
+th{background:#111;padding:10px 14px;text-align:left;font-size:11px;color:#555;font-weight:500;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+td{padding:10px 14px;border-top:1px solid #161616;vertical-align:middle;white-space:nowrap}
+tr:hover td{background:#0d0d0d}
+
+/* badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.badge.active{background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.2)}
+.badge.inactive{background:#1a1a1a;color:#555;border:1px solid #222}
+.badge.expired{background:rgba(255,32,32,.1);color:#ff6060;border:1px solid rgba(255,32,32,.2)}
+.badge.pending{background:rgba(250,204,21,.1);color:#facc15;border:1px solid rgba(250,204,21,.2)}
+.badge.completed{background:rgba(74,222,128,.12);color:#4ade80;border:1px solid rgba(74,222,128,.2)}
+.badge.failed{background:rgba(255,32,32,.1);color:#ff6060;border:1px solid rgba(255,32,32,.2)}
+.badge.vitalicio{background:rgba(168,85,247,.12);color:#c084fc;border:1px solid rgba(168,85,247,.2)}
+.badge.no-plan{background:#1a1a1a;color:#444;border:1px solid #222}
+.badge.percent{background:rgba(96,165,250,.1);color:#60a5fa;border:1px solid rgba(96,165,250,.2)}
+.badge.fixed{background:rgba(251,146,60,.1);color:#fb923c;border:1px solid rgba(251,146,60,.2)}
+
+.token{font-family:monospace;font-size:11px;color:#888;letter-spacing:.04em}
+
+/* buttons */
+.btn{padding:6px 13px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid;transition:all .15s;font-weight:500}
+.btn-ghost{background:transparent;border-color:#2a2a2a;color:#aaa}
+.btn-ghost:hover{border-color:#555;color:#fff}
+.btn-red{background:rgba(255,32,32,.1);border-color:rgba(255,32,32,.3);color:#ff6060}
+.btn-red:hover{background:rgba(255,32,32,.2);border-color:#ff2020}
+.btn-green{background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.3);color:#4ade80}
+.btn-green:hover{background:rgba(74,222,128,.2)}
+.btn-primary{background:#ff2020;border-color:#ff2020;color:#fff}
+.btn-primary:hover{background:#e01010}
+
+/* new coupon form */
+.coupon-form{background:#111;border:1px solid #1f1f1f;border-radius:10px;padding:20px;margin-bottom:16px}
+.coupon-form h3{font-size:13px;font-weight:600;margin-bottom:16px;color:#aaa;text-transform:uppercase;letter-spacing:.06em}
+.coupon-form p{font-size:12px;color:#555;margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:10px;align-items:end}
+.form-row.affiliate-create{grid-template-columns:1.15fr 1fr .8fr .75fr .75fr 1fr auto}
+.form-row.affiliate-settings{grid-template-columns:1fr 1fr auto;max-width:620px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.06em}
+.form-input{background:#0a0a0a;border:1px solid #2a2a2a;border-radius:7px;padding:8px 10px;color:#e5e5e5;font-size:13px;outline:none;transition:border-color .15s;width:100%}
+.form-input:focus{border-color:#ff2020}
+.form-select{background:#0a0a0a;border:1px solid #2a2a2a;border-radius:7px;padding:8px 10px;color:#e5e5e5;font-size:13px;outline:none;width:100%;cursor:pointer}
+.err-msg{color:#ff6060;font-size:12px;margin-top:8px}
+
+/* action col */
+.act-cell{display:flex;gap:6px}
+.act-cell.wrap{flex-wrap:wrap}
+.muted{color:#555}
+.money-ok{color:#4ade80;font-weight:600}
+.money-warn{color:#facc15;font-weight:600}
+.link-cell{font-family:monospace;color:#888;font-size:11px}
+.action-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px;background:#111;border:1px solid #1f1f1f;border-radius:10px;padding:16px 18px}
+.action-bar h3{font-size:13px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.action-bar p{font-size:12px;color:#555}
+.action-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.home-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.mini-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mini-fact{padding:12px;border-radius:9px;background:#0d0d0d;border:1px solid #1f1f1f}
+.mini-fact span{display:block;color:#555;font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.mini-fact strong{font-size:18px;color:#e5e5e5}
+.modal-overlay{display:none;position:fixed;inset:0;z-index:120;align-items:center;justify-content:center;background:rgba(0,0,0,.72);padding:20px}
+.modal-card{width:min(720px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow:auto;background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:24px;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.35)}
+.modal-card.narrow{width:min(440px,calc(100vw - 32px))}
+.modal-card .form-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+.modal-card .form-row.affiliate-create{grid-template-columns:repeat(2,minmax(0,1fr))}
+.modal-card .form-row.affiliate-settings,.modal-card.narrow .form-row{grid-template-columns:1fr}
+.modal-close{position:absolute;top:14px;right:14px;background:none;border:none;color:#555;font-size:18px;cursor:pointer}
+.modal-head{margin-bottom:18px}
+.modal-head h3{font-size:14px;font-weight:600;margin-bottom:4px;color:#e5e5e5}
+.modal-head p{font-size:12px;color:#555}
+.modal-actions{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+
+/* assign plan modal */
+.assign-opt{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid #2a2a2a;border-radius:8px;cursor:pointer;transition:border-color .15s}
+.assign-opt:hover{border-color:#555}
+.assign-opt input{accent-color:#ff2020;cursor:pointer}
+.assign-opt span{font-weight:500;flex:1}
+.assign-opt small{color:#555;font-size:11px}
+.assign-opt:has(input:checked){border-color:#ff2020;background:rgba(255,32,32,.05)}
+
+/* toggle switch */
+.toggle{position:relative;width:36px;height:20px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{width:36px;height:20px;background:#2a2a2a;border-radius:20px;transition:background .2s}
+.toggle input:checked + .toggle-track{background:#4ade80}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:14px;height:14px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle input:checked ~ .toggle-thumb{transform:translateX(16px)}
+
+/* affiliate table highlight */
+.aff-row td:first-child{font-weight:600;color:#c084fc}
+
+/* empty */
+.empty{padding:32px;text-align:center;color:#444;font-size:13px}
+.loader{display:flex;align-items:center;justify-content:center;padding:60px;color:#333;font-size:13px;gap:10px}
+.spin{width:16px;height:16px;border:2px solid #333;border-top-color:#ff2020;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* panel visibility */
+.panel{display:none}.panel.active{display:block}
+
+/* toast */
+.toast{position:fixed;bottom:24px;right:24px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:12px 18px;font-size:13px;color:#e5e5e5;z-index:999;transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none}
+.toast.show{transform:none;opacity:1}
+.toast.ok{border-color:rgba(74,222,128,.3);color:#4ade80}
+.toast.err{border-color:rgba(255,32,32,.3);color:#ff6060}
+@media (max-width:980px){
+  .shell{grid-template-columns:1fr;padding:16px}
+  .admin-sidebar{position:static;min-height:0}
+  .side-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .side-card{margin-top:0}
+  .content-head,.action-bar{flex-direction:column;align-items:stretch}
+  .content-actions,.action-buttons{justify-content:flex-start}
+  .stats,.home-grid,.mini-facts{grid-template-columns:1fr}
+  .form-row,.form-row.affiliate-create,.form-row.affiliate-settings{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  .side-nav{grid-template-columns:1fr}
+  .content-head h1{font-size:22px}
+}
+
+/* ============================================================
+   POLISH LAYER — motion, micro-interactions, depth
+   Aditivo: não substitui regras anteriores, apenas refina.
+   ============================================================ */
+
+:root{
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-back: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --red: #ff2020;
+  --red-soft: rgba(255,32,32,.4);
+  --red-glow: 0 0 0 1px rgba(255,32,32,.35), 0 8px 28px -8px rgba(255,32,32,.45);
+}
+
+*::selection{background:rgba(255,32,32,.25);color:#fff}
+
+/* scrollbar minimal & on-brand */
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:#1f1f1f;border:2px solid #0a0a0a;border-radius:10px;transition:background .15s}
+*::-webkit-scrollbar-thumb:hover{background:#2a2a2a}
+
+/* ---------- keyframes ---------- */
+@keyframes fadeUpSoft{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.85)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes barSlide{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes ringPop{0%{box-shadow:0 0 0 0 rgba(255,32,32,.35)}80%{box-shadow:0 0 0 8px rgba(255,32,32,0)}100%{box-shadow:0 0 0 0 rgba(255,32,32,0)}}
+
+/* ---------- body & shell entrance ---------- */
+body{font-feature-settings:"ss01","cv11";letter-spacing:-.005em}
+.shell{animation:fadeIn .35s var(--ease-out) both}
+
+/* ---------- sidebar ---------- */
+.admin-sidebar{
+  transition:border-color .25s var(--ease-out), box-shadow .25s var(--ease-out);
+}
+.admin-sidebar:hover{border-color:#262626}
+
+.side-link{
+  position:relative;
+  overflow:hidden;
+}
+.side-link::before{
+  content:"";
+  position:absolute;
+  left:0;top:8px;bottom:8px;
+  width:2px;
+  background:var(--red);
+  border-radius:2px;
+  transform:scaleY(0);
+  transform-origin:center;
+  transition:transform .28s var(--ease-back);
+}
+.side-link.active::before{transform:scaleY(1)}
+.side-link.active{padding-left:14px}
+.side-link:not(.active):hover{transform:translateX(2px)}
+.side-link, .side-link::before{transition:background .18s var(--ease-out),border-color .18s var(--ease-out),color .18s var(--ease-out),transform .22s var(--ease-out),padding-left .22s var(--ease-out)}
+
+.side-card{
+  position:relative;
+  transition:border-color .2s var(--ease-out), background .2s var(--ease-out);
+}
+.side-card::after{
+  content:"";
+  position:absolute;
+  top:14px;right:14px;
+  width:6px;height:6px;border-radius:50%;
+  background:#4ade80;
+  box-shadow:0 0 0 3px rgba(74,222,128,.18);
+  animation:pulseDot 2.4s ease-in-out infinite;
+  opacity:.7;
+}
+.side-card.syncing::after{
+  background:var(--red);
+  box-shadow:0 0 0 3px rgba(255,32,32,.25);
+}
+.side-card:hover{border-color:#262626;background:#101010}
+
+/* ---------- content head ---------- */
+.content-head{animation:slideDown .35s var(--ease-out) both}
+.content-head h1{transition:color .2s}
+
+/* ---------- panel transitions ---------- */
+.panel.active{animation:fadeUpSoft .32s var(--ease-out) both}
+.panel.active > *{animation:fadeUpSoft .42s var(--ease-out) both}
+.panel.active > *:nth-child(1){animation-delay:.02s}
+.panel.active > *:nth-child(2){animation-delay:.08s}
+.panel.active > *:nth-child(3){animation-delay:.14s}
+.panel.active > *:nth-child(4){animation-delay:.2s}
+
+/* ---------- stats / mini-facts ---------- */
+.stats{perspective:600px}
+.stat{
+  position:relative;
+  overflow:hidden;
+  transition:transform .25s var(--ease-out), border-color .25s var(--ease-out), background .25s var(--ease-out);
+}
+.stat::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius:inherit;
+  padding:1px;
+  background:linear-gradient(135deg,rgba(255,32,32,.4),transparent 40%,transparent 60%,rgba(255,32,32,.15));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  opacity:0;
+  transition:opacity .28s var(--ease-out);
+  pointer-events:none;
+}
+.stat:hover{transform:translateY(-2px);border-color:#262626;background:#131313}
+.stat:hover::before{opacity:1}
+.stat-val{transition:transform .3s var(--ease-back)}
+.stat:hover .stat-val{transform:translateX(2px)}
+
+.mini-fact{transition:transform .2s var(--ease-out),border-color .2s var(--ease-out),background .2s var(--ease-out)}
+.mini-fact:hover{transform:translateY(-1px);border-color:#262626;background:#101010}
+
+/* ---------- tables ---------- */
+.tbl-wrap{transition:border-color .25s var(--ease-out)}
+.tbl-wrap:hover{border-color:#262626}
+tbody tr{transition:background .15s var(--ease-out),transform .15s var(--ease-out)}
+tbody tr:hover td{background:#101010}
+tbody tr td:first-child{position:relative}
+tbody tr:hover td:first-child::before{
+  content:"";
+  position:absolute;
+  left:0;top:6px;bottom:6px;
+  width:2px;
+  background:var(--red);
+  border-radius:2px;
+  animation:barSlide .2s var(--ease-out) both;
+}
+
+tbody tr{animation:fadeUpSoft .35s var(--ease-out) both}
+tbody tr:nth-child(1){animation-delay:.02s}
+tbody tr:nth-child(2){animation-delay:.05s}
+tbody tr:nth-child(3){animation-delay:.08s}
+tbody tr:nth-child(4){animation-delay:.11s}
+tbody tr:nth-child(5){animation-delay:.14s}
+tbody tr:nth-child(6){animation-delay:.17s}
+tbody tr:nth-child(7){animation-delay:.2s}
+tbody tr:nth-child(8){animation-delay:.23s}
+tbody tr:nth-child(n+9){animation-delay:.26s}
+
+/* skeleton row (used while loading) */
+tbody tr.skeleton td{
+  color:transparent !important;
+}
+tbody tr.skeleton td > *{visibility:hidden}
+tbody tr.skeleton td{
+  background:linear-gradient(90deg,#0d0d0d 0%,#161616 50%,#0d0d0d 100%);
+  background-size:200% 100%;
+  animation:shimmer 1.4s ease-in-out infinite;
+}
+
+/* ---------- buttons polish ---------- */
+.btn{
+  position:relative;
+  isolation:isolate;
+  transition:transform .15s var(--ease-out), border-color .15s var(--ease-out), background .18s var(--ease-out), color .15s var(--ease-out), box-shadow .18s var(--ease-out);
+  will-change:transform;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0) scale(.98);transition-duration:.08s}
+.btn-primary:hover{box-shadow:0 8px 24px -8px rgba(255,32,32,.55)}
+.btn-red:hover{box-shadow:0 6px 18px -8px rgba(255,32,32,.45)}
+.btn-green:hover{box-shadow:0 6px 18px -8px rgba(74,222,128,.45)}
+.btn:focus-visible{outline:0;animation:ringPop .55s var(--ease-out)}
+
+/* loading state on buttons */
+.btn.is-loading{
+  color:transparent !important;
+  pointer-events:none;
+  position:relative;
+}
+.btn.is-loading::after{
+  content:"";
+  position:absolute;
+  inset:0;margin:auto;
+  width:14px;height:14px;
+  border:2px solid currentColor;
+  border-top-color:transparent;
+  border-radius:50%;
+  color:#aaa;
+  animation:spin .7s linear infinite;
+}
+.btn-primary.is-loading::after{color:#fff}
+
+/* ---------- inputs polish ---------- */
+.form-input,.form-select,.login-box input{
+  transition:border-color .18s var(--ease-out), background .18s var(--ease-out), box-shadow .18s var(--ease-out);
+}
+.form-input:hover,.form-select:hover{border-color:#3a3a3a}
+.form-input:focus,.form-select:focus,.login-box input:focus{
+  border-color:var(--red);
+  background:#0d0d0d;
+  box-shadow:0 0 0 3px rgba(255,32,32,.12);
+}
+
+/* ---------- badges polish ---------- */
+.badge{transition:transform .15s var(--ease-out),background .15s var(--ease-out)}
+.badge:hover{transform:translateY(-1px)}
+.badge.active{position:relative}
+.badge.active::before{
+  content:"";
+  display:inline-block;
+  width:5px;height:5px;border-radius:50%;
+  background:#4ade80;
+  margin-right:4px;
+  box-shadow:0 0 0 3px rgba(74,222,128,.18);
+  animation:pulseDot 2s ease-in-out infinite;
+  vertical-align:middle;
+}
+.badge.pending::before{
+  content:"";
+  display:inline-block;
+  width:5px;height:5px;border-radius:50%;
+  background:#facc15;
+  margin-right:4px;
+  box-shadow:0 0 0 3px rgba(250,204,21,.18);
+  animation:pulseDot 2.2s ease-in-out infinite;
+  vertical-align:middle;
+}
+
+/* ---------- toggle switch polish ---------- */
+.toggle-track{box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+.toggle-thumb{box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .25s var(--ease-back),background .2s}
+.toggle:hover .toggle-track{background:#333}
+.toggle input:checked + .toggle-track{box-shadow:inset 0 0 0 1px rgba(74,222,128,.4)}
+
+/* ---------- modals — fluid entry ---------- */
+.modal-overlay{
+  animation:fadeIn .2s var(--ease-out) both;
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+}
+.modal-card{
+  animation:scaleIn .28s var(--ease-back) both;
+  box-shadow:0 28px 80px -20px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.02);
+}
+.modal-close{
+  width:30px;height:30px;
+  display:inline-flex;align-items:center;justify-content:center;
+  border-radius:7px;
+  transition:background .15s, color .15s, transform .15s var(--ease-out);
+}
+.modal-close:hover{background:#1a1a1a;color:#fff;transform:rotate(90deg)}
+
+/* assign options polish */
+.assign-opt{transition:border-color .18s var(--ease-out),background .18s var(--ease-out),transform .15s var(--ease-out)}
+.assign-opt:hover{transform:translateX(2px)}
+
+/* ---------- login overlay polish ---------- */
+.login-overlay{
+  animation:fadeIn .25s var(--ease-out) both;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+.login-overlay.show .login-box{animation:scaleIn .35s var(--ease-back) both}
+.login-box{
+  box-shadow:0 30px 90px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(255,32,32,.05);
+  position:relative;
+  overflow:hidden;
+}
+.login-box::after{
+  content:"";
+  position:absolute;
+  top:-1px;left:20%;right:20%;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,32,32,.7),transparent);
+  opacity:.5;
+}
+
+/* ---------- toast polish ---------- */
+.toast{
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  background:rgba(20,20,20,.92);
+  box-shadow:0 18px 48px -16px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04);
+  padding:13px 20px;
+  display:flex;align-items:center;gap:10px;
+  min-width:220px;max-width:380px;
+  font-weight:500;
+  transform:translateY(20px) scale(.96);
+  transition:opacity .3s var(--ease-out), transform .35s var(--ease-back);
+}
+.toast.show{transform:translateY(0) scale(1)}
+.toast::before{
+  content:"";
+  width:6px;height:6px;border-radius:50%;
+  flex-shrink:0;
+  background:currentColor;
+  box-shadow:0 0 0 3px currentColor;
+  opacity:.18;
+  animation:pulseDot 1.6s ease-in-out infinite;
+}
+.toast.ok::before{color:#4ade80}
+.toast.err::before{color:#ff6060}
+
+/* ---------- action bar polish ---------- */
+.action-bar{transition:border-color .2s var(--ease-out)}
+.action-bar:hover{border-color:#262626}
+
+/* ---------- coupon-form (used as section card) ---------- */
+.coupon-form{transition:border-color .25s var(--ease-out)}
+.coupon-form:hover{border-color:#262626}
+
+/* ---------- empty & loader visual lift ---------- */
+.empty{animation:fadeIn .3s var(--ease-out) both}
+.loader{animation:fadeIn .3s var(--ease-out) both}
+.spin{border-top-color:var(--red);box-shadow:0 0 12px -4px rgba(255,32,32,.4)}
+
+/* respect users that prefer less motion */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;transition-duration:.001ms !important}
+  .side-card::after,.badge.active::before,.badge.pending::before,.toast::before{animation:none !important}
+}
+
+/* ============================================================
+   THEME LAYER v2 — O7CORP identity (matches the landing)
+   Monochrome · Satoshi · glass · red as a whisper.
+   Appended last: overrides the generic dark palette above.
+   ============================================================ */
+:root{
+  --bg:#050506; --bg-2:#08080a;
+  --panel:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.018));
+  --panel-h:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.03));
+  --line:rgba(255,255,255,.08); --line-2:rgba(255,255,255,.14);
+  --text:#edeef1; --dim:#83858c; --faint:#52545a;
+  --red:#ff2020; --red-soft:rgba(255,32,32,.12); --red-line:rgba(255,32,32,.32);
+  --green:#6ee7a2; --amber:#f5c878;
+  --r:13px; --r-lg:18px;
+  --ff:'Satoshi',system-ui,sans-serif; --ff-mono:'JetBrains Mono',ui-monospace,monospace;
+  --ease-out:cubic-bezier(.23,1,.32,1);
+}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--ff);letter-spacing:-.01em;font-feature-settings:"ss01";
+}
+/* soft page ambience, same language as the landing hero */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(60% 45% at 82% -8%,rgba(255,32,32,.05),transparent 62%),
+    radial-gradient(48% 38% at -5% 0%,rgba(255,255,255,.022),transparent 60%);
+}
+
+/* ---- surfaces → glass ---- */
+.admin-sidebar,.stat,.coupon-form,.modal-card,.action-bar,.login-box,.tbl-wrap{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+}
+.mini-fact,.side-card{background:rgba(255,255,255,.028);border:1px solid var(--line);border-radius:var(--r)}
+.tbl-wrap{overflow:hidden}
+.admin-sidebar:hover,.side-card:hover{border-color:var(--line-2)}
+
+/* ---- tables ---- */
+table{min-width:600px}
+th{background:rgba(255,255,255,.022);color:var(--faint);font-family:var(--ff-mono);font-size:10px;font-weight:500;letter-spacing:.16em}
+td{border-top:1px solid var(--line);color:var(--text)}
+tr:hover td{background:rgba(255,255,255,.022)}
+
+/* ---- typography ---- */
+.content-head h1,.modal-head h3{font-family:var(--ff);font-weight:500;letter-spacing:-.03em;color:var(--text)}
+.content-kicker{color:var(--red);font-family:var(--ff-mono);font-weight:500;letter-spacing:.2em}
+.sec-title,.stat-label,.side-card span,.form-group label,.side-brand small{
+  font-family:var(--ff-mono);color:var(--faint);letter-spacing:.16em;text-transform:uppercase;
+}
+.side-brand b{font-weight:500;color:var(--text)}
+.side-link span{font-weight:500}
+.side-link small{font-family:var(--ff-mono);letter-spacing:.08em}
+.stat-val{font-family:var(--ff);font-weight:600;letter-spacing:-.035em;color:var(--text)}
+.stat-val.green,.stat-val.red,.stat-val.purple{color:var(--text)} /* numbers stay monochrome */
+.token,.link-cell,.updated{font-family:var(--ff-mono);color:var(--dim)}
+.mini-fact strong{color:var(--text)}
+
+/* ---- sidebar active state ---- */
+.side-link.active{background:rgba(255,255,255,.05);border-color:var(--line-2);color:#fff}
+.side-link.active small{color:var(--red)}
+.side-link:hover{background:rgba(255,255,255,.04);color:#eaeaea}
+
+/* ---- badges → restrained: neutral · green · red · amber ---- */
+.badge{font-family:var(--ff-mono);font-size:10px;letter-spacing:.04em;border-radius:999px;padding:3px 9px;font-weight:500;text-transform:lowercase}
+.badge.active,.badge.completed,.badge.paid,.badge.available,.badge.approved{
+  background:rgba(110,231,162,.1);color:var(--green);border:1px solid rgba(110,231,162,.24)}
+.badge.expired,.badge.failed,.badge.rejected{
+  background:var(--red-soft);color:#ff8d86;border:1px solid var(--red-line)}
+.badge.pending,.badge.requested,.badge.percent{
+  background:rgba(245,200,120,.1);color:var(--amber);border:1px solid rgba(245,200,120,.22)}
+.badge.inactive,.badge.no-plan,.badge.fixed,.badge.vitalicio{
+  background:rgba(255,255,255,.05);color:var(--dim);border:1px solid var(--line)}
+.aff-row td:first-child{color:var(--text)} /* drop the purple highlight */
+
+/* ---- buttons → landing ---- */
+.btn{border-radius:10px;font-weight:500;transition:transform .4s var(--ease-out),background .3s,border-color .3s,color .3s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--red);border-color:var(--red);color:#fff}
+.btn-primary:hover{background:#ff3a3a;box-shadow:0 10px 30px -10px rgba(255,32,32,.6)}
+.btn-ghost{background:rgba(255,255,255,.03);border-color:var(--line-2);color:var(--text)}
+.btn-ghost:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.28);color:#fff}
+.btn-red{background:var(--red-soft);border-color:var(--red-line);color:#ff8d86}
+.btn-red:hover{background:rgba(255,32,32,.18);border-color:var(--red);color:#ffb0ab}
+.btn-green{background:rgba(110,231,162,.1);border-color:rgba(110,231,162,.26);color:var(--green)}
+
+/* ---- inputs ---- */
+.form-input,.form-select,.login-box input{
+  background:rgba(0,0,0,.32);border:1px solid var(--line-2);border-radius:10px;color:var(--text);
+  transition:border-color .2s,box-shadow .2s}
+.form-input:focus,.form-select:focus,.login-box input:focus{
+  border-color:var(--red-line);box-shadow:0 0 0 3px rgba(255,32,32,.12)}
+
+/* ---- chrome ---- */
+.content-head{border-bottom:1px solid var(--line)}
+.content-head p,.coupon-form p,.action-bar p{color:var(--dim)}
+.modal-card{border-radius:var(--r-lg);box-shadow:0 30px 90px rgba(0,0,0,.5)}
+.toast{background:var(--panel-h);border:1px solid var(--line-2);border-radius:var(--r);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.login-box{border-radius:var(--r-lg)}
+.assign-opt:has(input:checked){border-color:var(--red-line);background:var(--red-soft)}
+*::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border:2px solid #050506}
+*::selection{background:rgba(255,32,32,.25);color:#fff}
+
+/* ---- dashboard charts ---- */
+.charts-row{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;margin-bottom:16px}
+.chart-card h3{margin-bottom:14px}
+.chart-mount{min-height:150px}
+.chart-svg{width:100%;height:176px;display:block;overflow:visible}
+.chart-total{font-family:var(--ff);font-weight:600;font-size:21px;letter-spacing:-.025em;color:var(--text);margin-bottom:8px}
+.chart-total span{font-family:var(--ff-mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:400}
+.ct{fill:var(--faint);font-family:var(--ff-mono);font-size:9px}
+.bars{display:flex;flex-direction:column;gap:15px;margin-top:8px}
+.bar-row{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:10px}
+.bar-label{font-size:12px;color:var(--dim)}
+.bar-track{height:10px;background:rgba(255,255,255,.05);border-radius:999px;overflow:hidden}
+.bar-fill{height:100%;background:rgba(255,255,255,.16);border-radius:999px;position:relative;transition:width .6s var(--ease-out)}
+.bar-fill i{position:absolute;left:0;top:0;bottom:0;background:var(--red);border-radius:999px;display:block}
+.bar-val{font-family:var(--ff-mono);font-size:13px;color:var(--text)}
+.bar-val small{color:var(--faint)}
+.bars-legend{display:flex;gap:18px;margin-top:18px;font-family:var(--ff-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.bars-legend i.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.bars-legend i.active{background:var(--red)}
+.bars-legend i.total{background:rgba(255,255,255,.18)}
+@media(max-width:980px){.charts-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- login overlay -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div style="width:28px;height:28px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;overflow:hidden"><img src="./assets/07-china.png" alt="" style="width:100%;height:100%;object-fit:contain"/></div>
+    <h2>SpiderBot Admin</h2>
+    <p>Digite a senha de admin</p>
+    <input id="login-pass" type="password" placeholder="Senha" autocomplete="current-password"/>
+    <input id="login-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Código 2FA (se ativado)" style="margin-top:10px"/>
+    <button class="btn btn-primary" data-onclick="doLogin()">Entrar</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<div class="shell" id="main-shell" style="display:none">
+
+  <aside class="admin-sidebar">
+    <div class="side-brand">
+      <img src="./assets/07-china.png" alt=""/>
+      <span><b>SpiderBot</b><small>Admin</small></span>
+    </div>
+    <nav class="side-nav" aria-label="Navegacao do admin">
+      <button class="side-link active" data-tab="inicio" data-onclick="switchTab('inicio')"><span>Inicio</span><small>Dashboard</small></button>
+      <button class="side-link" data-tab="usuarios" data-onclick="switchTab('usuarios')"><span>Usuarios</span><small>Contas & Licencas</small></button>
+      <button class="side-link" data-tab="eventos" data-onclick="switchTab('eventos')"><span>Eventos</span><small>Auditoria</small></button>
+      <button class="side-link" data-tab="pagamentos" data-onclick="switchTab('pagamentos')"><span>Pagamentos</span><small>Vendas</small></button>
+      <button class="side-link" data-tab="cupons" data-onclick="switchTab('cupons')"><span>Cupons</span><small>Descontos</small></button>
+      <button class="side-link" data-tab="afiliados" data-onclick="switchTab('afiliados')"><span>Afiliados</span><small>Parceiros</small></button>
+      <button class="side-link" data-tab="saques" data-onclick="switchTab('saques')"><span>Saques</span><small>Comissoes</small></button>
+      <button class="side-link" data-tab="produtos" data-onclick="switchTab('produtos')"><span>Produtos</span><small>Precos</small></button>
+    </nav>
+    <div class="side-card">
+      <span>Atualizacao</span>
+      <strong id="updated">Aguardando dados</strong>
+    </div>
+    <div class="side-actions">
+      <button class="btn btn-ghost" data-onclick="loadAll()">Atualizar</button>
+      <button class="btn btn-red" data-onclick="doLogout()" style="font-size:11px">Sair</button>
+    </div>
+  </aside>
+
+  <main class="admin-content">
+    <header class="content-head">
+      <div>
+        <span class="content-kicker">SpiderBot Admin</span>
+        <h1 id="section-title">Inicio</h1>
+        <p id="section-desc">Resumo geral da operacao, receita, clientes e atividade recente.</p>
+      </div>
+      <div class="content-actions">
+        <button class="btn btn-ghost" data-onclick="loadAll()">Atualizar dados</button>
+      </div>
+    </header>
+
+  <!-- INICIO -->
+  <div id="panel-inicio" class="panel active">
+    <div class="stats">
+      <div class="stat"><div class="stat-label">Total usuarios</div><div class="stat-val" id="s-users">-</div></div>
+      <div class="stat"><div class="stat-label">Assinaturas ativas</div><div class="stat-val green" id="s-active">-</div></div>
+      <div class="stat"><div class="stat-label">Receita total</div><div class="stat-val" id="s-revenue">-</div></div>
+      <div class="stat"><div class="stat-label">Descontos dados</div><div class="stat-val purple" id="s-discounts">-</div></div>
+    </div>
+    <div class="charts-row">
+      <section class="coupon-form chart-card">
+        <h3>Receita · ultimos 14 dias</h3>
+        <div id="chart-revenue" class="chart-mount"></div>
+      </section>
+      <section class="coupon-form chart-card">
+        <h3>Licencas por plano</h3>
+        <div id="chart-plans" class="chart-mount"></div>
+      </section>
+    </div>
+    <div class="home-grid">
+      <section class="coupon-form">
+        <h3>Operacao</h3>
+        <div class="mini-facts">
+          <div class="mini-fact"><span>Pagamentos</span><strong id="home-payments">-</strong></div>
+          <div class="mini-fact"><span>Licencas</span><strong id="home-licenses">-</strong></div>
+          <div class="mini-fact"><span>Cupons</span><strong id="home-coupons">-</strong></div>
+          <div class="mini-fact"><span>Afiliados</span><strong id="home-affiliates">-</strong></div>
+        </div>
+      </section>
+      <section class="coupon-form">
+        <h3>Afiliados</h3>
+        <div class="mini-facts">
+          <div class="mini-fact"><span>Comissao padrao</span><strong id="home-aff-rate">-</strong></div>
+          <div class="mini-fact"><span>Saque minimo</span><strong id="home-min-payout">-</strong></div>
+          <div class="mini-fact"><span>Saques pendentes</span><strong id="home-payouts">-</strong></div>
+          <div class="mini-fact"><span>Comissoes abertas</span><strong id="home-commissions">-</strong></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- USUARIOS -->
+  <div id="panel-usuarios" class="panel">
+    <div class="action-bar">
+      <div>
+        <h3>Usuarios & Licencas</h3>
+        <p>Cadastre usuarios, atribua planos e gerencie licencas em um so lugar.</p>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-primary" data-onclick="openCreateUser()">+ Novo usuario</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Plano</th><th>Status</th><th>Expira em</th><th>Device</th><th>Desde</th><th>Acoes</th></tr></thead>
+        <tbody id="tbody-usuarios"><tr><td colspan="8"><div class="loader"><div class="spin"></div>Carregando...</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- EVENTOS -->
+  <div id="panel-eventos" class="panel">
+    <div class="action-bar">
+      <div>
+        <h3>Eventos de licenca</h3>
+        <p>Historico operacional recente das licencas, dispositivos e automacoes.</p>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-ghost" data-onclick="loadAll()">Atualizar eventos</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Tipo</th><th>Mensagem</th><th>Licenca</th><th>Detalhes</th><th>Data</th></tr></thead>
+        <tbody id="tbody-events"><tr><td colspan="5"><div class="loader"><div class="spin"></div>Carregando...</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal editar cupom -->
+  <div id="edit-coupon-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center">
+    <div style="background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:28px;width:380px;position:relative">
+      <button data-onclick="closeEditCoupon()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:#555;font-size:18px;cursor:pointer">✕</button>
+      <h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Editar cupom</h3>
+      <p id="edit-coupon-code-label" style="font-family:monospace;font-size:13px;color:#ff2020;margin-bottom:20px;letter-spacing:.06em"></p>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="form-group">
+          <label>Afiliado</label>
+          <input id="edit-affiliate" class="form-input" placeholder="Nome do afiliado"/>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group">
+            <label>Tipo</label>
+            <select id="edit-type" class="form-select">
+              <option value="percent">Percentual (%)</option>
+              <option value="fixed">Valor fixo (R$)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Desconto</label>
+            <input id="edit-value" class="form-input" type="number" min="1"/>
+          </div>
+        </div>
+      </div>
+      <div id="edit-coupon-err" class="err-msg" style="display:none;margin-top:8px"></div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-primary" style="flex:1" data-onclick="saveEditCoupon()">Salvar</button>
+        <button class="btn btn-ghost" data-onclick="closeEditCoupon()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal atribuir plano -->
+  <div id="assign-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center">
+    <div style="background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:28px;width:360px;position:relative">
+      <button data-onclick="closeAssign()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:#555;font-size:18px;cursor:pointer">✕</button>
+      <h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Atribuir plano</h3>
+      <p id="assign-email-label" style="font-size:12px;color:#555;margin-bottom:20px"></p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px" id="assign-plan-opts">
+        <label class="assign-opt" data-plan="daily"><input type="radio" name="assign-plan" value="daily"/> <span>⏱ Diário</span> <small>24h de acesso</small></label>
+        <label class="assign-opt" data-plan="monthly"><input type="radio" name="assign-plan" value="monthly"/> <span>📅 Mensal</span> <small>30 dias de acesso</small></label>
+        <label class="assign-opt" data-plan="lifetime"><input type="radio" name="assign-plan" value="lifetime"/> <span>∞ Vitalício</span> <small>Acesso para sempre</small></label>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1" data-onclick="confirmAssign()">Atribuir plano</button>
+        <button class="btn btn-red" id="assign-remove-btn" style="display:none" data-onclick="removePlan()">Remover plano</button>
+      </div>
+      <div id="assign-err" style="color:#ff6060;font-size:12px;margin-top:8px;display:none"></div>
+    </div>
+  </div>
+
+  <!-- Modal confirmar revogar licenca -->
+  <div id="confirm-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center">
+    <div style="background:#111;border:1px solid #2a2a2a;border-radius:14px;padding:28px;width:340px;position:relative">
+      <button data-onclick="closeConfirm()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:#555;font-size:18px;cursor:pointer">✕</button>
+      <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Confirmar ação</h3>
+      <p id="confirm-msg" style="font-size:13px;color:#aaa;margin-bottom:20px"></p>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-red" style="flex:1" id="confirm-btn" data-onclick="">Confirmar</button>
+        <button class="btn btn-ghost" data-onclick="closeConfirm()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGAMENTOS -->
+  <div id="panel-pagamentos" class="panel">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Cliente</th><th>Plano</th><th>Valor</th><th>Cupom</th><th>Afiliado</th><th>Comissao</th><th>Status</th><th>Data</th></tr></thead>
+        <tbody id="tbody-payments"><tr><td colspan="9"><div class="loader"><div class="spin"></div>Carregando...</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CUPONS -->
+  <div id="panel-cupons" class="panel">
+    <div class="action-bar">
+      <div>
+        <h3>Promoções gerais</h3>
+        <p>Cupons de desconto sem afiliado. Cupons de afiliado são geridos na aba Afiliados.</p>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-primary" data-onclick="openCreateCoupon()">+ Nova promoção</button>
+      </div>
+    </div>
+    <div class="tbl-wrap" style="margin-bottom:24px">
+      <table>
+        <thead><tr><th>Código</th><th>Descrição</th><th>Desconto</th><th>Usos</th><th>Status</th><th>Criado em</th><th>Ações</th></tr></thead>
+        <tbody id="tbody-coupons"><tr><td colspan="7"><div class="loader"><div class="spin"></div>Carregando...</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- AFILIADOS -->
+  <div id="panel-afiliados" class="panel">
+    <div class="action-bar">
+      <div>
+        <h3>Afiliados cadastrados</h3>
+        <p>Cadastre, aprove, desative e ajuste regras de comissao sem sair da tabela.</p>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-ghost" data-onclick="openAffiliateSettings()">Regras</button>
+        <button class="btn btn-primary" data-onclick="openCreateAffiliate()">+ Novo afiliado</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Cupom</th><th>Comissão</th><th>PIX</th><th>Status</th><th>Vendas</th><th>Disponível</th><th>Ações</th></tr></thead>
+        <tbody id="tbody-affiliates"><tr><td colspan="9"><div class="loader"><div class="spin"></div>Carregando...</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SAQUES -->
+  <div id="panel-saques" class="panel">
+    <div class="action-bar">
+      <div>
+        <h3>Saques</h3>
+        <p>Aprove, rejeite ou marque saques como pagos depois da conferencia manual via PIX.</p>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-ghost" data-onclick="loadAll()">Atualizar saques</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Afiliado</th><th>Valor</th><th>Status</th><th>PIX</th><th>Vendas</th><th>Solicitado em</th><th>Ações</th></tr></thead>
+        <tbody id="tbody-payouts"><tr><td colspan="8"><div class="loader"><div class="spin"></div>Carregando...</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PRODUTOS -->
+  <div id="panel-produtos" class="panel">
+    <div class="action-bar">
+      <div>
+        <h3>Valores dos planos</h3>
+        <p>Altere precos em modal. Mudancas entram em vigor na proxima compra e nao alteram pagamentos antigos.</p>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-primary" data-onclick="openPricesModal()">Editar precos</button>
+      </div>
+    </div>
+    <div class="coupon-form">
+      <h3>Catalogo</h3>
+      <p>Use o modal para manter a area de produtos limpa e evitar formularios longos na tela principal.</p>
+      <div class="empty">Precos disponiveis: Diario, Mensal e Vitalicio.</div>
+    </div>
+  </div>
+
+  <div id="user-create-overlay" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close" data-onclick="closeModal('user-create-overlay')">×</button>
+      <div class="modal-head">
+        <h3>Novo usuario</h3>
+        <p>A senha sera gerada automaticamente. Copie e envie ao usuario.</p>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>E-mail</label>
+          <input id="cu-email" class="form-input" type="email" placeholder="usuario@email.com"/>
+        </div>
+        <div class="form-group">
+          <label>Nome (opcional)</label>
+          <input id="cu-name" class="form-input" placeholder="Nome do usuario"/>
+        </div>
+      </div>
+      <div id="cu-err" class="err-msg" style="display:none"></div>
+      <div id="cu-result" style="margin-top:12px;display:none;background:#0a1a0a;border:1px solid #1a3a1a;border-radius:8px;padding:14px">
+        <div style="font-size:11px;color:#4ade80;margin-bottom:6px">Senha gerada (copie agora):</div>
+        <div id="cu-password" style="font-family:monospace;font-size:15px;color:#fff;word-break:break-all;user-select:all"></div>
+        <button class="btn btn-green" style="margin-top:10px;font-size:11px" data-onclick="copyGeneratedPassword()">Copiar senha</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-onclick="closeModal('user-create-overlay')">Cancelar</button>
+        <button class="btn btn-primary" data-onclick="createUser()">Criar usuario</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="coupon-create-overlay" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close" data-onclick="closeModal('coupon-create-overlay')">×</button>
+      <div class="modal-head">
+        <h3>Nova promoção</h3>
+        <p>Cupom de desconto geral, sem afiliado.</p>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Codigo</label>
+          <input id="f-code" class="form-input" placeholder="EX: BLACKFRIDAY10" style="text-transform:uppercase" maxlength="20"/>
+        </div>
+        <div class="form-group">
+          <label>Descrição (opcional)</label>
+          <input id="f-affiliate" class="form-input" placeholder="ex: Promoção de lançamento"/>
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="f-type" class="form-select">
+            <option value="percent">Percentual (%)</option>
+            <option value="fixed">Valor fixo (R$)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Desconto</label>
+          <input id="f-value" class="form-input" type="number" placeholder="ex: 10" min="1"/>
+        </div>
+      </div>
+      <div id="f-err" class="err-msg" style="display:none"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-onclick="closeModal('coupon-create-overlay')">Cancelar</button>
+        <button class="btn btn-primary" data-onclick="createCoupon()">Criar cupom</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="affiliate-settings-overlay" class="modal-overlay">
+    <div class="modal-card narrow">
+      <button class="modal-close" data-onclick="closeModal('affiliate-settings-overlay')">×</button>
+      <div class="modal-head">
+        <h3>Regras de afiliado</h3>
+        <p>Defina os valores padrao usados para novas vendas de afiliados.</p>
+      </div>
+      <div class="form-row affiliate-settings">
+        <div class="form-group">
+          <label>Comissao padrao (%)</label>
+          <input id="aff-set-commission" class="form-input" type="number" min="0" max="100" placeholder="20"/>
+        </div>
+        <div class="form-group">
+          <label>Saque minimo (R$)</label>
+          <input id="aff-set-min" class="form-input" type="number" min="1" placeholder="50"/>
+        </div>
+      </div>
+      <div id="aff-set-err" class="err-msg" style="display:none"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-onclick="closeModal('affiliate-settings-overlay')">Cancelar</button>
+        <button class="btn btn-primary" data-onclick="saveAffiliateSettings()">Salvar regras</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="affiliate-create-overlay" class="modal-overlay">
+    <div class="modal-card">
+      <button class="modal-close" data-onclick="closeModal('affiliate-create-overlay')">×</button>
+      <div class="modal-head">
+        <h3>Novo afiliado</h3>
+        <p>Cadastre o afiliado e ja crie seu cupom principal.</p>
+      </div>
+      <div class="form-row affiliate-create">
+        <div class="form-group">
+          <label>E-mail</label>
+          <input id="aff-email" class="form-input" type="email" placeholder="afiliado@email.com"/>
+        </div>
+        <div class="form-group">
+          <label>Nome</label>
+          <input id="aff-name" class="form-input" placeholder="Nome publico"/>
+        </div>
+        <div class="form-group">
+          <label>Cupom</label>
+          <input id="aff-coupon" class="form-input" placeholder="AFILIADO10" style="text-transform:uppercase" maxlength="40"/>
+        </div>
+        <div class="form-group">
+          <label>Desconto %</label>
+          <input id="aff-coupon-value" class="form-input" type="number" min="0" placeholder="10"/>
+        </div>
+        <div class="form-group">
+          <label>Comissao %</label>
+          <input id="aff-commission" class="form-input" type="number" min="0" max="100" placeholder="20"/>
+        </div>
+        <div class="form-group">
+          <label>Chave PIX</label>
+          <input id="aff-pix" class="form-input" placeholder="opcional"/>
+        </div>
+      </div>
+      <div id="aff-err" class="err-msg" style="display:none"></div>
+      <div id="aff-result" style="display:none;margin-top:12px;padding:14px;background:#0a1a0a;border:1px solid #1a3a1a;border-radius:8px">
+        <div style="font-size:11px;color:#4ade80;margin-bottom:6px">Senha do afiliado (copie agora):</div>
+        <div id="aff-password" style="font-family:monospace;font-size:15px;color:#fff;word-break:break-all;user-select:all"></div>
+        <button class="btn btn-green" style="margin-top:10px;font-size:11px" data-onclick="copyAffiliatePassword()">Copiar senha</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-onclick="closeModal('affiliate-create-overlay')">Fechar</button>
+        <button class="btn btn-primary" data-onclick="createAffiliate()">Criar afiliado</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: editar cupom do afiliado -->
+  <div id="aff-edit-coupon-overlay" class="modal-overlay" style="display:none">
+    <div class="modal-card narrow">
+      <button class="modal-close" data-onclick="closeEditAffiliateCoupon()">×</button>
+      <div class="modal-head">
+        <h3>Cupom do afiliado</h3>
+        <p id="aff-coupon-email-label" style="font-family:monospace;color:#c084fc"></p>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Código</label>
+          <input id="aff-edit-coupon-code" class="form-input" style="text-transform:uppercase" maxlength="40"/>
+        </div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="aff-edit-coupon-type" class="form-select">
+            <option value="percent">Percentual (%)</option>
+            <option value="fixed">Valor fixo (R$)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Desconto</label>
+          <input id="aff-edit-coupon-value" class="form-input" type="number" min="0"/>
+        </div>
+      </div>
+      <div id="aff-edit-coupon-err" class="err-msg" style="display:none"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-onclick="closeEditAffiliateCoupon()">Cancelar</button>
+        <button class="btn btn-primary" data-onclick="saveEditAffiliateCoupon()">Salvar cupom</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: nova senha do afiliado -->
+  <div id="aff-reset-overlay" class="modal-overlay" style="display:none">
+    <div class="modal-card narrow">
+      <button class="modal-close" data-onclick="closeModal('aff-reset-overlay')">×</button>
+      <div class="modal-head">
+        <h3>Nova senha gerada</h3>
+        <p id="aff-reset-email-label" style="font-family:monospace;color:#c084fc"></p>
+      </div>
+      <div style="padding:14px;background:#0a1a0a;border:1px solid #1a3a1a;border-radius:8px">
+        <div style="font-size:11px;color:#4ade80;margin-bottom:6px">Senha (copie agora):</div>
+        <div id="aff-reset-password" style="font-family:monospace;font-size:15px;color:#fff;word-break:break-all;user-select:all"></div>
+        <button class="btn btn-green" style="margin-top:10px;font-size:11px" data-onclick="copyResetPassword()">Copiar senha</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" data-onclick="closeModal('aff-reset-overlay')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="prices-overlay" class="modal-overlay">
+    <div class="modal-card narrow">
+      <button class="modal-close" data-onclick="closeModal('prices-overlay')">×</button>
+      <div class="modal-head">
+        <h3>Valores dos planos</h3>
+        <p>Alteracoes entram em vigor imediatamente na proxima compra.</p>
+      </div>
+      <div id="price-fields" style="display:flex;flex-direction:column;gap:12px">
+        <div class="loader"><div class="spin"></div>Carregando...</div>
+      </div>
+      <div id="price-feedback" style="font-size:13px;display:none;margin-top:10px"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-onclick="closeModal('prices-overlay')">Cancelar</button>
+        <button class="btn btn-primary" data-onclick="savePrices()">Salvar precos</button>
+      </div>
+    </div>
+  </div>
+
+  </main>
+</div>
+
+<!-- toast -->
+<div id="toast" class="toast"></div>
+
+<script type="module" src="/src/admin.js"></script>
+</body>
+</html>
